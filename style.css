@@ -1,0 +1,623 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoolControl - Gestão da Piscina</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f3f7fa;color:#203040}
+.layout{display:flex;min-height:100vh}
+.menu{width:245px;background:#123c56;color:white;padding:28px 18px;position:fixed;height:100vh}
+.logo{font-size:25px;font-weight:bold;margin-bottom:40px}
+.logo span{color:#53d4dc}
+.menu button{display:block;width:100%;border:0;background:transparent;color:#dceaf1;padding:14px;text-align:left;border-radius:9px;cursor:pointer;margin-bottom:8px}
+.menu button:hover,.menu button.ativo{background:#245a75;color:white}
+.conteudo{margin-left:245px;padding:35px;width:calc(100% - 245px)}
+.cabecalho{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;gap:15px}
+.cabecalho h1{font-size:27px}
+.cabecalho p{color:#71808c;margin-top:7px}
+.botao{background:#087e9c;color:white;border:0;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:bold}
+.botao:hover{background:#06677f}
+.botao-secundario{border:1px solid #087e9c;color:#087e9c;background:white;border-radius:7px;padding:9px 12px;cursor:pointer}
+.botao-remover{background:#fff0f0;color:#c44444;border:0;padding:8px 10px;border-radius:6px;cursor:pointer}
+.cartoes{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:30px}
+.cartao,.painel{background:white;padding:23px;border-radius:13px;box-shadow:0 3px 14px #17394b0b}
+.cartao p{color:#788994;font-size:14px}
+.cartao h2{font-size:30px;margin-top:12px;color:#087e9c}
+.painel{margin-bottom:25px}
+.painel h2{font-size:19px;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #edf1f4;font-size:13px;vertical-align:top}
+th{color:#71808c}
+.secao{display:none}
+.secao.ativa{display:block}
+.campo{margin-bottom:16px}
+.campo label{display:block;font-size:13px;font-weight:bold;margin-bottom:7px}
+.campo input,.campo select,.campo textarea{width:100%;padding:12px;border:1px solid #dce4e9;border-radius:8px;outline:none;background:white}
+.campo textarea{min-height:90px;resize:vertical}
+.modal{display:none;position:fixed;inset:0;background:#102b3b99;justify-content:center;align-items:center;padding:15px;z-index:10}
+.modal.aberto{display:flex}
+.modal-conteudo{background:white;width:570px;max-width:100%;max-height:90vh;overflow-y:auto;padding:27px;border-radius:14px}
+.modal-topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:23px}
+.fechar{background:none;border:0;font-size:25px;cursor:pointer}
+.grupo{background:#f3f8fa;padding:15px;border-radius:9px;margin-bottom:15px}
+.grupo-titulo{font-weight:bold;margin-bottom:13px;font-size:14px}
+.linha{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.linha input{flex:1;min-width:0;padding:11px;border:1px solid #dce4e9;border-radius:8px}
+.acoes{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.vazio{text-align:center;color:#87949d;padding:20px}
+.etiqueta{display:inline-block;background:#e4f5f7;color:#087e9c;padding:5px 9px;border-radius:20px;font-size:12px}
+@media(max-width:900px){.cartoes{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){
+.menu{width:100%;height:auto;position:relative;padding:15px}
+.layout{display:block}
+.logo{margin-bottom:12px}
+.menu button{display:inline-block;width:auto;padding:9px;font-size:12px}
+.conteudo{margin:0;width:100%;padding:20px 14px}
+.cabecalho{align-items:flex-start;flex-direction:column}
+.painel{overflow-x:auto}
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+
+<aside class="menu">
+    <div class="logo">POOL<span>CONTROL</span></div>
+    <button class="ativo" onclick="mostrarSecao('inicio',this)">▦ Painel inicial</button>
+    <button onclick="mostrarSecao('acessos',this)">↔ Controle de acesso</button>
+    <button onclick="mostrarSecao('acontecimentos',this)">▤ Acontecimentos</button>
+    <button onclick="mostrarSecao('associados',this)">♙ Associados e dependentes</button>
+</aside>
+
+<main class="conteudo">
+
+<section id="inicio" class="secao ativa">
+    <div class="cabecalho">
+        <div><h1>Painel inicial</h1><p>Bem-vindo ao sistema de gestão da piscina.</p></div>
+        <button class="botao" onclick="abrirModal('modalAcesso')">+ Registrar acesso</button>
+    </div>
+
+    <div class="cartoes">
+        <div class="cartao"><p>Acessos registrados hoje</p><h2 id="totalAcessos">0</h2></div>
+        <div class="cartao"><p>Acontecimentos registrados</p><h2 id="totalAcontecimentos">0</h2></div>
+        <div class="cartao"><p>Pessoas que entraram hoje</p><h2 id="totalPessoas">0</h2></div>
+        <div class="cartao"><p>Associados cadastrados</p><h2 id="totalAssociados">0</h2></div>
+    </div>
+
+    <div class="painel">
+        <h2>Últimos acessos</h2>
+        <table>
+            <thead><tr><th>Data</th><th>Associado responsável</th><th>Quem entrou</th></tr></thead>
+            <tbody id="ultimosAcessos"></tbody>
+        </table>
+    </div>
+
+    <div class="painel">
+        <h2>Últimos acontecimentos</h2>
+        <table>
+            <thead><tr><th>Data</th><th>Associado</th><th>Tipo</th><th>Descrição</th></tr></thead>
+            <tbody id="ultimosAcontecimentos"></tbody>
+        </table>
+    </div>
+</section>
+
+<section id="acessos" class="secao">
+    <div class="cabecalho">
+        <div><h1>Controle de acesso</h1><p>Registre quem entrou na piscina.</p></div>
+        <button class="botao" onclick="abrirModal('modalAcesso')">+ Novo acesso</button>
+    </div>
+    <div class="painel">
+        <h2>Histórico de acessos</h2>
+        <table>
+            <thead><tr><th>Data</th><th>Associado responsável</th><th>Quem entrou</th><th>Convidados</th><th>Ação</th></tr></thead>
+            <tbody id="listaAcessos"></tbody>
+        </table>
+    </div>
+</section>
+
+<section id="acontecimentos" class="secao">
+    <div class="cabecalho">
+        <div><h1>Acontecimentos</h1><p>Registre situações ocorridas na piscina.</p></div>
+        <button class="botao" onclick="abrirModal('modalAcontecimento')">+ Novo acontecimento</button>
+    </div>
+    <div class="painel">
+        <h2>Histórico de acontecimentos</h2>
+        <table>
+            <thead><tr><th>Data</th><th>Associado</th><th>Envolvidos</th><th>Tipo</th><th>Descrição</th><th>Ação</th></tr></thead>
+            <tbody id="listaAcontecimentos"></tbody>
+        </table>
+    </div>
+</section>
+
+<section id="associados" class="secao">
+    <div class="cabecalho">
+        <div><h1>Associados e dependentes</h1><p>Cadastre associados e seus dependentes.</p></div>
+        <button class="botao" onclick="abrirModal('modalAssociado')">+ Novo associado</button>
+    </div>
+    <div class="painel">
+        <h2>Associados cadastrados</h2>
+        <table>
+            <thead><tr><th>Associado responsável</th><th>Dependentes</th><th>Ação</th></tr></thead>
+            <tbody id="listaAssociados"></tbody>
+        </table>
+    </div>
+</section>
+
+</main>
+</div>
+
+<!-- MODAL DE ACESSO -->
+<div class="modal" id="modalAcesso">
+<div class="modal-conteudo">
+    <div class="modal-topo">
+        <h2>Registrar acesso</h2>
+        <button class="fechar" onclick="fecharModal('modalAcesso')">×</button>
+    </div>
+
+    <form id="formAcesso">
+        <div class="campo">
+            <label>Associado responsável</label>
+            <input id="associadoAcesso" list="opcoesAssociados" placeholder="Digite o nome do associado" required>
+            <datalist id="opcoesAssociados"></datalist>
+        </div>
+
+        <div class="campo">
+            <label>Data do acesso</label>
+            <input type="date" id="dataAcesso" required>
+        </div>
+
+        <div class="grupo">
+            <div class="grupo-titulo">Quem entrou?</div>
+            <p style="font-size:12px;color:#71808c;margin-bottom:12px">
+                Informe individualmente o nome de cada pessoa que entrou na piscina.
+            </p>
+            <div id="pessoasQueEntraram"></div>
+            <button type="button" class="botao-secundario" onclick="adicionarPessoa()">+ Adicionar pessoa</button>
+        </div>
+
+        <div class="grupo">
+            <div class="grupo-titulo">Convidados</div>
+            <div id="camposConvidados"></div>
+            <button type="button" class="botao-secundario" onclick="adicionarConvidado()">+ Adicionar convidado</button>
+        </div>
+
+        <div class="acoes">
+            <button type="button" class="botao-secundario" onclick="fecharModal('modalAcesso')">Cancelar</button>
+            <button type="submit" class="botao">Salvar acesso</button>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- MODAL DE ACONTECIMENTO -->
+<div class="modal" id="modalAcontecimento">
+<div class="modal-conteudo">
+    <div class="modal-topo">
+        <h2>Novo acontecimento</h2>
+        <button class="fechar" onclick="fecharModal('modalAcontecimento')">×</button>
+    </div>
+
+    <form id="formAcontecimento">
+        <div class="campo">
+            <label>Associado responsável</label>
+            <input id="associadoOcorrencia" list="opcoesAssociados" placeholder="Digite o nome do associado" required>
+        </div>
+        <div class="campo">
+            <label>Data</label>
+            <input type="date" id="dataOcorrencia" required>
+        </div>
+        <div class="grupo">
+            <div class="grupo-titulo">Pessoas envolvidas</div>
+            <div id="camposEnvolvidos"></div>
+            <button type="button" class="botao-secundario" onclick="adicionarEnvolvido()">+ Adicionar pessoa</button>
+        </div>
+        <div class="campo">
+            <label>Tipo de acontecimento</label>
+            <select id="tipoOcorrencia" required>
+                <option value="">Selecione</option>
+                <option>Observação</option>
+                <option>Acidente</option>
+                <option>Discussão</option>
+                <option>Problema na piscina</option>
+                <option>Objeto perdido</option>
+                <option>Outro</option>
+            </select>
+        </div>
+        <div class="campo">
+            <label>Descrição</label>
+            <textarea id="descricaoOcorrencia" placeholder="Descreva o que aconteceu..." required></textarea>
+        </div>
+        <div class="acoes">
+            <button type="button" class="botao-secundario" onclick="fecharModal('modalAcontecimento')">Cancelar</button>
+            <button type="submit" class="botao">Salvar acontecimento</button>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- MODAL DE ASSOCIADO -->
+<div class="modal" id="modalAssociado">
+<div class="modal-conteudo">
+    <div class="modal-topo">
+        <h2>Cadastrar associado</h2>
+        <button class="fechar" onclick="fecharModal('modalAssociado')">×</button>
+    </div>
+    <form id="formAssociado">
+        <div class="campo">
+            <label>Nome do associado responsável</label>
+            <input id="nomeAssociado" placeholder="Nome completo" required>
+        </div>
+        <div class="grupo">
+            <div class="grupo-titulo">Dependentes</div>
+            <div id="novosDependentes"></div>
+            <button type="button" class="botao-secundario" onclick="adicionarNovoDependente()">+ Adicionar dependente</button>
+        </div>
+        <div class="acoes">
+            <button type="button" class="botao-secundario" onclick="fecharModal('modalAssociado')">Cancelar</button>
+            <button type="submit" class="botao">Salvar cadastro</button>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+let associados = JSON.parse(localStorage.getItem("pool_associados")) || [];
+let acessos = JSON.parse(localStorage.getItem("pool_acessos")) || [];
+let acontecimentos = JSON.parse(localStorage.getItem("pool_ocorrencias")) || [];
+
+function salvarDados(){
+    localStorage.setItem("pool_associados",JSON.stringify(associados));
+    localStorage.setItem("pool_acessos",JSON.stringify(acessos));
+    localStorage.setItem("pool_ocorrencias",JSON.stringify(acontecimentos));
+}
+
+function escapar(valor){
+    return String(valor ?? "").replace(/[&<>"']/g,c=>({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    })[c]);
+}
+
+function dataHoje(){
+    const d=new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+
+function formatarData(data){
+    return data ? data.split("-").reverse().join("/") : "-";
+}
+
+function mostrarSecao(id,botao){
+    document.querySelectorAll(".secao").forEach(s=>s.classList.remove("ativa"));
+    document.getElementById(id).classList.add("ativa");
+    document.querySelectorAll(".menu button").forEach(b=>b.classList.remove("ativo"));
+    botao.classList.add("ativo");
+}
+
+function abrirModal(id){
+    document.getElementById(id).classList.add("aberto");
+
+    if(id==="modalAcesso"){
+        document.getElementById("formAcesso").reset();
+        document.getElementById("dataAcesso").value=dataHoje();
+        document.getElementById("pessoasQueEntraram").innerHTML="";
+        document.getElementById("camposConvidados").innerHTML="";
+        adicionarPessoa();
+    }
+
+    if(id==="modalAcontecimento"){
+        document.getElementById("formAcontecimento").reset();
+        document.getElementById("dataOcorrencia").value=dataHoje();
+        document.getElementById("camposEnvolvidos").innerHTML="";
+    }
+
+    if(id==="modalAssociado"){
+        document.getElementById("formAssociado").reset();
+        document.getElementById("novosDependentes").innerHTML="";
+        adicionarNovoDependente();
+    }
+}
+
+function fecharModal(id){
+    document.getElementById(id).classList.remove("aberto");
+}
+
+function atualizarSugestoes(){
+    document.getElementById("opcoesAssociados").innerHTML=
+        associados.map(a=>`<option value="${escapar(a.nome)}"></option>`).join("");
+}
+
+function obterAssociado(nome){
+    let associado=associados.find(a=>a.nome.toLowerCase()===nome.trim().toLowerCase());
+    if(!associado){
+        associado={id:Date.now(),nome:nome.trim(),dependentes:[]};
+        associados.push(associado);
+    }
+    return associado;
+}
+
+function adicionarPessoa(valor="",tipo=""){
+    const area=document.getElementById("pessoasQueEntraram");
+    const linha=document.createElement("div");
+    linha.className="linha";
+
+    const nome=document.createElement("input");
+    nome.placeholder="Nome de quem entrou";
+    nome.value=valor;
+
+    const categoria=document.createElement("select");
+    categoria.style.cssText="padding:11px;border:1px solid #dce4e9;border-radius:8px;width:135px";
+    categoria.innerHTML=`
+        <option value="">Tipo de pessoa</option>
+        <option value="Associado">Associado</option>
+        <option value="Dependente">Dependente</option>
+        <option value="Convidado">Convidado</option>
+        <option value="Outro">Outro</option>`;
+    categoria.value=tipo;
+
+    const remover=document.createElement("button");
+    remover.type="button";
+    remover.className="botao-remover";
+    remover.textContent="Remover";
+    remover.onclick=()=>linha.remove();
+
+    linha.append(nome,categoria,remover);
+    area.appendChild(linha);
+}
+
+function adicionarConvidado(){
+    const area=document.getElementById("camposConvidados");
+    const grupo=document.createElement("div");
+    grupo.className="grupo";
+    grupo.innerHTML=`
+        <div class="campo">
+            <label>Nome do convidado</label>
+            <input class="nome-convidado" placeholder="Nome completo">
+        </div>
+        <div class="campo">
+            <label>Quem trouxe este convidado?</label>
+            <input class="responsavel-convidado" placeholder="Nome de quem trouxe">
+        </div>`;
+    const remover=document.createElement("button");
+    remover.type="button";
+    remover.className="botao-remover";
+    remover.textContent="Remover convidado";
+    remover.onclick=()=>grupo.remove();
+    grupo.appendChild(remover);
+    area.appendChild(grupo);
+}
+
+function adicionarNovoDependente(){
+    const area=document.getElementById("novosDependentes");
+    const linha=document.createElement("div");
+    linha.className="linha";
+    const campo=document.createElement("input");
+    campo.placeholder="Nome do dependente";
+    const remover=document.createElement("button");
+    remover.type="button";
+    remover.className="botao-remover";
+    remover.textContent="Remover";
+    remover.onclick=()=>linha.remove();
+    linha.append(campo,remover);
+    area.appendChild(linha);
+}
+
+function adicionarEnvolvido(){
+    const area=document.getElementById("camposEnvolvidos");
+    const linha=document.createElement("div");
+    linha.className="linha";
+    const campo=document.createElement("input");
+    campo.placeholder="Nome da pessoa envolvida";
+    const remover=document.createElement("button");
+    remover.type="button";
+    remover.className="botao-remover";
+    remover.textContent="Remover";
+    remover.onclick=()=>linha.remove();
+    linha.append(campo,remover);
+    area.appendChild(linha);
+}
+
+// CADASTRO DE ASSOCIADOS
+document.getElementById("formAssociado").addEventListener("submit",function(e){
+    e.preventDefault();
+    const nome=document.getElementById("nomeAssociado").value.trim();
+
+    if(associados.some(a=>a.nome.toLowerCase()===nome.toLowerCase())){
+        alert("Este associado já está cadastrado.");
+        return;
+    }
+
+    const dependentes=[...document.querySelectorAll("#novosDependentes input")]
+        .map(c=>c.value.trim()).filter(Boolean);
+
+    associados.push({id:Date.now(),nome,dependentes});
+    salvarDados();
+    atualizarTudo();
+    fecharModal("modalAssociado");
+    alert("Associado cadastrado com sucesso!");
+});
+
+// REGISTRO DE ACESSO
+document.getElementById("formAcesso").addEventListener("submit",function(e){
+    e.preventDefault();
+
+    const nome=document.getElementById("associadoAcesso").value.trim();
+    const data=document.getElementById("dataAcesso").value;
+
+    if(!nome){
+        alert("Informe o associado responsável.");
+        return;
+    }
+
+    const pessoas=[...document.querySelectorAll("#pessoasQueEntraram .linha")].map(l=>({
+        nome:l.querySelector("input").value.trim(),
+        tipo:l.querySelector("select").value
+    })).filter(p=>p.nome);
+
+    if(pessoas.length===0){
+        alert("Informe quem entrou na piscina.");
+        return;
+    }
+
+    if(pessoas.some(p=>!p.tipo)){
+        alert("Selecione o tipo de cada pessoa que entrou.");
+        return;
+    }
+
+    const grupos=[...document.querySelectorAll("#camposConvidados .grupo")];
+    const convidados=grupos.map(g=>({
+        nome:g.querySelector(".nome-convidado").value.trim(),
+        quemTrouxe:g.querySelector(".responsavel-convidado").value.trim()
+    })).filter(c=>c.nome||c.quemTrouxe);
+
+    if(convidados.some(c=>!c.nome||!c.quemTrouxe)){
+        alert("Preencha o nome e quem trouxe cada convidado.");
+        return;
+    }
+
+    const associado=obterAssociado(nome);
+
+    pessoas.filter(p=>p.tipo==="Dependente").forEach(p=>{
+        if(!associado.dependentes.some(d=>d.toLowerCase()===p.nome.toLowerCase())){
+            associado.dependentes.push(p.nome);
+        }
+    });
+
+    acessos.unshift({
+        id:Date.now(),
+        data,
+        associado:nome,
+        pessoas,
+        convidados
+    });
+
+    salvarDados();
+    atualizarTudo();
+    fecharModal("modalAcesso");
+    alert("Acesso registrado com sucesso!");
+});
+
+// REGISTRO DE ACONTECIMENTO
+document.getElementById("formAcontecimento").addEventListener("submit",function(e){
+    e.preventDefault();
+
+    const nome=document.getElementById("associadoOcorrencia").value.trim();
+    const envolvidos=[...document.querySelectorAll("#camposEnvolvidos input")]
+        .map(c=>c.value.trim()).filter(Boolean);
+
+    obterAssociado(nome);
+
+    acontecimentos.unshift({
+        id:Date.now(),
+        data:document.getElementById("dataOcorrencia").value,
+        associado:nome,
+        envolvidos,
+        tipo:document.getElementById("tipoOcorrencia").value,
+        descricao:document.getElementById("descricaoOcorrencia").value.trim()
+    });
+
+    salvarDados();
+    atualizarTudo();
+    fecharModal("modalAcontecimento");
+    alert("Acontecimento registrado com sucesso!");
+});
+
+// EXCLUSÕES
+function excluirAcesso(id){
+    if(!confirm("Deseja excluir este acesso?"))return;
+    acessos=acessos.filter(a=>a.id!==id);
+    salvarDados();atualizarTudo();
+}
+
+function excluirAssociado(id){
+    if(!confirm("Deseja excluir este associado?"))return;
+    associados=associados.filter(a=>a.id!==id);
+    salvarDados();atualizarTudo();
+}
+
+function excluirAcontecimento(id){
+    if(!confirm("Deseja excluir este acontecimento?"))return;
+    acontecimentos=acontecimentos.filter(a=>a.id!==id);
+    salvarDados();atualizarTudo();
+}
+
+// ATUALIZAÇÃO DO SISTEMA
+function atualizarTudo(){
+    atualizarSugestoes();
+
+    const acessosHoje=acessos.filter(a=>a.data===dataHoje());
+
+    document.getElementById("totalAcessos").textContent=acessosHoje.length;
+    document.getElementById("totalAcontecimentos").textContent=acontecimentos.length;
+    document.getElementById("totalPessoas").textContent=
+        acessosHoje.reduce((total,a)=>total+(a.pessoas||[]).length,0);
+    document.getElementById("totalAssociados").textContent=associados.length;
+
+    const mostrarPessoas=a=>(a.pessoas||[]).map(p=>
+        `${escapar(p.nome)} (${escapar(p.tipo)})`
+    ).join("<br>")||"-";
+
+    document.getElementById("listaAcessos").innerHTML=
+        acessos.map(a=>`
+            <tr>
+                <td>${formatarData(a.data)}</td>
+                <td>${escapar(a.associado)}</td>
+                <td>${mostrarPessoas(a)}</td>
+                <td>${(a.convidados||[]).map(c=>
+                    `${escapar(c.nome)}<br><small>Levado por: ${escapar(c.quemTrouxe)}</small>`
+                ).join("<br>")||"-"}</td>
+                <td><button class="botao-remover" onclick="excluirAcesso(${a.id})">Excluir</button></td>
+            </tr>
+        `).join("")||'<tr><td colspan="5" class="vazio">Nenhum acesso registrado.</td></tr>';
+
+    document.getElementById("ultimosAcessos").innerHTML=
+        acessos.slice(0,5).map(a=>`
+            <tr>
+                <td>${formatarData(a.data)}</td>
+                <td>${escapar(a.associado)}</td>
+                <td>${mostrarPessoas(a)}</td>
+            </tr>
+        `).join("")||'<tr><td colspan="3" class="vazio">Nenhum acesso registrado.</td></tr>';
+
+    document.getElementById("listaAcontecimentos").innerHTML=
+        acontecimentos.map(a=>`
+            <tr>
+                <td>${formatarData(a.data)}</td>
+                <td>${escapar(a.associado)}</td>
+                <td>${(a.envolvidos||[]).map(escapar).join(", ")||"-"}</td>
+                <td><span class="etiqueta">${escapar(a.tipo)}</span></td>
+                <td>${escapar(a.descricao)}</td>
+                <td><button class="botao-remover" onclick="excluirAcontecimento(${a.id})">Excluir</button></td>
+            </tr>
+        `).join("")||'<tr><td colspan="6" class="vazio">Nenhum acontecimento registrado.</td></tr>';
+
+    document.getElementById("ultimosAcontecimentos").innerHTML=
+        acontecimentos.slice(0,5).map(a=>`
+            <tr>
+                <td>${formatarData(a.data)}</td>
+                <td>${escapar(a.associado)}</td>
+                <td>${escapar(a.tipo)}</td>
+                <td>${escapar(a.descricao)}</td>
+            </tr>
+        `).join("")||'<tr><td colspan="4" class="vazio">Nenhum acontecimento registrado.</td></tr>';
+
+    document.getElementById("listaAssociados").innerHTML=
+        associados.map(a=>`
+            <tr>
+                <td>${escapar(a.nome)}</td>
+                <td>${a.dependentes.map(escapar).join(", ")||"Nenhum dependente"}</td>
+                <td><button class="botao-remover" onclick="excluirAssociado(${a.id})">Excluir</button></td>
+            </tr>
+        `).join("")||'<tr><td colspan="3" class="vazio">Nenhum associado cadastrado.</td></tr>';
+}
+
+document.getElementById("dataAcesso").value=dataHoje();
+document.getElementById("dataOcorrencia").value=dataHoje();
+atualizarTudo();
+</script>
+</body>
+</html>
